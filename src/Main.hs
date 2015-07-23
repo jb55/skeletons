@@ -48,6 +48,7 @@ liftWut io fnIO = io >>= fnIO
 specialVars :: FilePath -> Text -> IO (Maybe Text)
 specialVars _  "$basename" = Just . T.pack . D.takeBaseName <$> D.getCurrentDirectory
 specialVars fp "$filename" = return . Just . T.pack $ fp
+specialVars _ _ = return Nothing
 
 processVar :: FilePath -> Text -> IO Text
 processVar file var = do
