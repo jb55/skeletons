@@ -32,7 +32,7 @@
 
   Files under `$HOME/.config/closet/<skeleton>` are [tinytemplates](https://hackage.haskell.org/package/tinytemplate)
 
-  Basically they can contain anything, with template fields like: `{{ some_field }}`
+  They can contain anything, with template fields like so: `{{ some_field }}`
 
 ### Example Template
 
