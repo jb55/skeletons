@@ -73,7 +73,6 @@ skeleton mcloset skel = do
   else do
     files <- liftIO (D.getDirectoryContents path)
     let files' = filter (not . (`elem` [".", ".."])) files
-    liftIO $ print files'
     liftIO $ forM files' $ \file -> do
       contents <- liftIO (T.readFile $ path </> file)
       processed <- process contents
