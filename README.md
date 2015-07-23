@@ -17,7 +17,7 @@
 
     $ skeletons <skeleton>
 
-  For example: `$HOME/.config/nix-hs/{default,shell}.nix`
+  For example: `$HOME/.config/closet/nix-hs/{default,shell}.nix`
 
     $ skeletons nix-hs
 
@@ -26,7 +26,7 @@
 
 ## Templates
 
-  Files under `closet/<skeleton>` are [tinytemplates](https://hackage.haskell.org/package/tinytemplate)
+  Files under `$HOME/.config/closet/<skeleton>` are [tinytemplates](https://hackage.haskell.org/package/tinytemplate)
 
   Basically they can contain anything, with template fields like: `{{ some_field }}`
 
