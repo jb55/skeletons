@@ -5,11 +5,11 @@
 
 ## Installation
 
-  Install with cabal
+  Install with cabal (not yet, soon)
 
     $ cabal install skeletons
 
-  Install with nix
+  Install with [nix](http://nixos.org/nix/)
 
     $ git clone https://github.com/jb55/skeletons && cd skeletons && nix-env -i -f .
 
