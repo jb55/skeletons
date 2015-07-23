@@ -41,6 +41,11 @@
 
   `name` will be prompted
 
+### Special Variables
+
+  If you use `{{ $basename }}` in your template, it will fill it with the
+  name of the current directory
+
 ## License
 
   The MIT License (MIT)
