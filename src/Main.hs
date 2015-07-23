@@ -1,13 +1,13 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE FlexibleInstances #-} 
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Main where
 
 import Data.Maybe (fromMaybe)
-import Control.Monad (forM)
+import Control.Monad (forM_, forM)
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.IO.Class (MonadIO(..))
 import Control.Monad.Trans.Except (throwE, ExceptT(..), runExceptT)
@@ -20,6 +20,7 @@ import System.FilePath.Posix ((</>))
 import Data.Text.Template
 import Data.Text (Text)
 import qualified System.Directory as D
+import qualified System.FilePath.Posix as D
 import qualified Data.Text.IO as T
 import qualified Data.Text as T
 
@@ -44,14 +45,25 @@ data SkelPrompt a = SkelVar !Text
 liftWut :: IO a -> (a -> IO Text) -> IO Text
 liftWut io fnIO = io >>= fnIO
 
-processVar :: Text -> IO Text
-processVar var = do
-  putStr $ T.unpack var <> ": "
-  hFlush stdout
-  fmap T.pack getLine
+specialVars :: FilePath -> Text -> IO (Maybe Text)
+specialVars _  "$basename" = Just . T.pack . D.takeBaseName <$> D.getCurrentDirectory
+specialVars fp "$filename" = return . Just . T.pack $ fp
 
-process :: Text -> IO Text
-process contents = applyTemplate processVar (parseTemplate contents)
+processVar :: FilePath -> Text -> IO Text
+processVar file var = do
+  matchedVar <- specialVars file var
+  case matchedVar of
+    Just val -> return val
+    Nothing -> do
+      putStr $ T.unpack var <> ": "
+      hFlush stdout
+      fmap T.pack getLine
+
+process :: FilePath -> Text -> IO Text
+process file contents = applyTemplate (processVar file) (parseTemplate contents)
+
+info :: String -> Doc
+info s = white (text s)
 
 err :: Doc
 err = red (text "error")
@@ -75,9 +87,11 @@ skeleton mcloset skel = do
     let files' = filter (not . (`elem` [".", ".."])) files
     liftIO $ forM files' $ \file -> do
       contents <- liftIO (T.readFile $ path </> file)
-      processed <- process contents
+      processed <- process file contents
       return (file, processed)
 
+note :: Doc -> IO ()
+note doc = putStrLn (displayS (renderPretty 1.0 80 doc) "")
 
 runSkeleton :: FilePath -> IO (Either Doc [(FilePath, Text)])
 runSkeleton x = runExceptT $ runSkel $ skeleton Nothing x
@@ -90,6 +104,8 @@ main = do
     (x:_) -> do
       result <- runSkeleton x
       case result of
-        Left doc  -> putStrLn $ displayS (renderPretty 1.0 80 doc) ""
-        Right res -> mapM_ (uncurry T.writeFile) res
+        Left doc  -> note doc
+        Right res -> forM_ res $ \(file, contents) -> do
+          note (info "writing" <+> text file)
+          T.writeFile file contents
     [] -> usage
