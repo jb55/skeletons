@@ -9,6 +9,10 @@
 
     $ cabal install skeletons
 
+  Install with nix
+
+    $ git clone https://github.com/jb55/skeletons && cd skeletons && nix-env -i -f .
+
 ## Usage
 
   Put skeleton files in folders under `$HOME/.config/closet/<skeleton>/{file1,file2}`
