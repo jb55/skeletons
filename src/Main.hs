@@ -1,3 +1,4 @@
+{-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -10,6 +11,7 @@ import Data.Maybe (fromMaybe)
 import Control.Monad (forM_, forM)
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.IO.Class (MonadIO(..))
+import Control.Arrow ((***))
 import Control.Monad.Trans.Except (throwE, ExceptT(..), runExceptT)
 import Text.PrettyPrint.ANSI.Leijen hiding ((</>), (<>), (<$>))
 import Data.Monoid ((<>))
@@ -34,31 +36,64 @@ usage = do
 
 type Skel a = ExceptT Doc IO a
 
+newtype Default = Default { unDefault :: Text }
+                deriving (Show)
+
 newtype SkelM a = SkelM { runSkel :: Skel a }
   deriving (Monad, Functor, Applicative)
 
 instance MonadIO SkelM where
   liftIO = SkelM . lift
 
-data SkelPrompt a = SkelVar !Text
+lastSplit []     = Nothing
+lastSplit [x]    = Nothing
+lastSplit [x,y]  = Just (x, y)
+lastSplit (x:xs) = lastSplit xs
 
-liftWut :: IO a -> (a -> IO Text) -> IO Text
-liftWut io fnIO = io >>= fnIO
+parseDefault :: Text -> Maybe (Text, Default)
+parseDefault = fmap (id *** Default) . lastSplit . map T.strip . T.splitOn "?"
 
 specialVars :: FilePath -> Text -> IO (Maybe Text)
 specialVars _  "$basename" = Just . T.pack . D.takeBaseName <$> D.getCurrentDirectory
 specialVars fp "$filename" = return . Just . T.pack $ fp
 specialVars _ _ = return Nothing
 
+promptWithDefault :: Default -> Text -> IO Text
+promptWithDefault (unDefault -> def) var = do
+  putStr $ T.unpack var <> " (" <> T.unpack def <> "): "
+  hFlush stdout
+  input <- getLine
+  return $ if null input
+             then def
+             else T.pack input
+
+prompt :: Text -> IO Text
+prompt var = do
+  putStr $ T.unpack var <> ": "
+  hFlush stdout
+  fmap T.pack getLine
+
 processVar :: FilePath -> Text -> IO Text
 processVar file var = do
+  let mioDef = do (defVar, def) <- parseDefault var
+                  return (defVar, def, fmap Default <$> specialVars file (unDefault def))
   matchedVar <- specialVars file var
-  case matchedVar of
-    Just val -> return val
-    Nothing -> do
-      putStr $ T.unpack var <> ": "
-      hFlush stdout
-      fmap T.pack getLine
+  case (matchedVar, mioDef) of
+    -- we got a matched return it
+    (Just val, _) -> return val
+
+    -- we got a default variable, check to see if it's a special var
+    (_, Just (defVar, def, ioMatchDef)) -> do
+      matchDef <- ioMatchDef
+      case matchDef of
+        -- we got a default variable that was matched with a special var
+        Just matched -> promptWithDefault matched defVar
+
+        -- we got a default variable that was NOT matched with a special var
+        Nothing -> promptWithDefault def defVar
+
+    -- We just got a regular var, prompt!
+    (_, Nothing) -> prompt var
 
 process :: FilePath -> Text -> IO Text
 process file contents = applyTemplate (processVar file) (parseTemplate contents)
