@@ -48,7 +48,7 @@
 
 ### Default Variables
 
-  Variables can have default values like so: `{{ name ? "bob" }}`
+  Variables can have default values like so: `{{ name ? bob }}`
 
   You can even default to special variables: `{{ dir ? $basename }}`
 
