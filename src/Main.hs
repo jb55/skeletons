@@ -9,14 +9,16 @@ module Main where
 
 import Data.Maybe (fromMaybe)
 import Data.IORef
+import Control.Applicative
 import Control.Monad (forM_, forM)
-import Control.Monad.Trans.Class (lift)
+import Control.Monad.Trans.Class (lift, MonadTrans(..))
 import Control.Monad.Trans.Cont
 import Control.Monad.IO.Class (MonadIO(..))
-import Control.Arrow ((***))
+import Control.Arrow (second)
 import Control.Monad.Trans.Except (throwE, ExceptT(..), runExceptT)
 import Text.PrettyPrint.ANSI.Leijen hiding ((</>), (<>), (<$>))
 import Data.Monoid ((<>))
+import Data.Map (insert, Map(..))
 import System.IO (hFlush, stdout)
 import System.Environment (getArgs)
 import System.Exit (exitFailure)
@@ -27,6 +29,7 @@ import qualified System.Directory as D
 import qualified System.FilePath.Posix as D
 import qualified Data.Text.IO as T
 import qualified Data.Text as T
+import qualified Data.Map as M
 
 usage :: IO a
 usage = do
@@ -53,7 +56,7 @@ lastSplit [x,y]  = Just (x, y)
 lastSplit (x:xs) = lastSplit xs
 
 parseDefault :: Text -> Maybe (Text, Default)
-parseDefault = fmap (id *** Default) . lastSplit . map T.strip . T.splitOn "?"
+parseDefault = fmap (second Default) . lastSplit . map T.strip . T.splitOn "?"
 
 specialVars :: FilePath -> Text -> IO (Maybe Text)
 specialVars _  "$basename" = Just . T.pack . D.takeBaseName <$> D.getCurrentDirectory
@@ -75,6 +78,7 @@ prompt var = do
   hFlush stdout
   fmap T.pack getLine
 
+processVar :: (Monad (t IO), MonadTrans t) => FilePath -> Text -> t IO Text
 processVar file var = do
   let mioDef = do (defVar, def) <- parseDefault var
                   return (defVar, def, fmap Default <$> specialVars file (unDefault def))
@@ -85,7 +89,7 @@ processVar file var = do
 
     -- we got a default variable, check to see if it's a special var
     (_, Just (defVar, def, ioMatchDef)) -> do
-      matchDef <- lift $ ioMatchDef
+      matchDef <- lift ioMatchDef
       case matchDef of
         -- we got a default variable that was matched with a special var
         Just matched -> lift $ promptWithDefault matched defVar
@@ -96,16 +100,22 @@ processVar file var = do
     -- We just got a regular var, prompt!
     (_, Nothing) -> lift $ prompt var
 
-process :: IORef [Text] -> FilePath -> Text -> IO Text
+process :: IORef (Map Text Text) -> FilePath -> Text -> IO Text
 process ref file contents = do
-  applyTemplate (evalContT . mapContT (mapper ref) . processVar file) (parseTemplate contents)
+  let procs var = evalContT (mapContT (mapper var) (processVar file var))
+  applyTemplate procs (parseTemplate contents)
   where
-    mapper ref mr = do
-      r <- mr
-      modifyIORef ref (r:)
+    mapper var mr = do
       vals <- readIORef ref
-      putStrLn $ "so far " <> show vals
-      return r
+      case M.lookup var vals of
+        Just cached -> do
+          putStrLn $ T.unpack $ "cache hit on " <> var <> " val " <> cached
+          return cached
+        Nothing -> do r <- mr
+                      -- cache the result
+                      modifyIORef ref (M.insert var r)
+                      putStrLn $ T.unpack $ "caching " <> T.pack (show var) <> " val " <> r
+                      return r
 
 
 info :: String -> Doc
@@ -131,7 +141,7 @@ skeleton mcloset skel = do
   else do
     files <- liftIO (D.getDirectoryContents path)
     let files' = filter (not . (`elem` [".", ".."])) files
-    ref <- liftIO $ newIORef []
+    ref <- liftIO $ newIORef M.empty
     liftIO $ forM files' $ \file -> do
       contents <- liftIO (T.readFile $ path </> file)
       processed <- process ref file contents

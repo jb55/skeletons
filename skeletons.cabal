@@ -29,6 +29,7 @@ executable skeletons
   -- Other library packages from which modules are imported.
   build-depends: ansi-wl-pprint
                , base >=4.7 && <5
+               , containers
                , directory
                , filepath
                , text
