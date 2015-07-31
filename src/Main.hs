@@ -109,12 +109,12 @@ process ref file contents = do
       vals <- readIORef ref
       case M.lookup var vals of
         Just cached -> do
-          putStrLn $ T.unpack $ "cache hit on " <> var <> " val " <> cached
+          -- putStrLn $ T.unpack $ "cache hit on " <> var <> " val " <> cached
           return cached
         Nothing -> do r <- mr
                       -- cache the result
                       modifyIORef ref (M.insert var r)
-                      putStrLn $ T.unpack $ "caching " <> T.pack (show var) <> " val " <> r
+                      -- putStrLn $ T.unpack $ "caching " <> T.pack (show var) <> " val " <> r
                       return r
 
 
