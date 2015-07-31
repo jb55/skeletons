@@ -9,7 +9,6 @@ module Main where
 
 import Data.Maybe (fromMaybe)
 import Data.IORef
-import Control.Applicative
 import Control.Monad (forM_, forM)
 import Control.Monad.Trans.Class (lift, MonadTrans(..))
 import Control.Monad.Trans.Cont
@@ -18,7 +17,7 @@ import Control.Arrow (second)
 import Control.Monad.Trans.Except (throwE, ExceptT(..), runExceptT)
 import Text.PrettyPrint.ANSI.Leijen hiding ((</>), (<>), (<$>))
 import Data.Monoid ((<>))
-import Data.Map (insert, Map(..))
+import Data.Map (Map)
 import System.IO (hFlush, stdout)
 import System.Environment (getArgs)
 import System.Exit (exitFailure)
@@ -50,10 +49,11 @@ newtype SkelM a = SkelM { runSkel :: Skel a }
 instance MonadIO SkelM where
   liftIO = SkelM . lift
 
+lastSplit :: [t] -> Maybe (t, t)
 lastSplit []     = Nothing
-lastSplit [x]    = Nothing
+lastSplit [_]    = Nothing
 lastSplit [x,y]  = Just (x, y)
-lastSplit (x:xs) = lastSplit xs
+lastSplit (_:xs) = lastSplit xs
 
 parseDefault :: Text -> Maybe (Text, Default)
 parseDefault = fmap (second Default) . lastSplit . map T.strip . T.splitOn "?"
