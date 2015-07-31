@@ -8,8 +8,10 @@
 module Main where
 
 import Data.Maybe (fromMaybe)
+import Data.IORef
 import Control.Monad (forM_, forM)
 import Control.Monad.Trans.Class (lift)
+import Control.Monad.Trans.Cont
 import Control.Monad.IO.Class (MonadIO(..))
 import Control.Arrow ((***))
 import Control.Monad.Trans.Except (throwE, ExceptT(..), runExceptT)
@@ -73,30 +75,38 @@ prompt var = do
   hFlush stdout
   fmap T.pack getLine
 
-processVar :: FilePath -> Text -> IO Text
 processVar file var = do
   let mioDef = do (defVar, def) <- parseDefault var
                   return (defVar, def, fmap Default <$> specialVars file (unDefault def))
-  matchedVar <- specialVars file var
+  matchedVar <- lift $ specialVars file var
   case (matchedVar, mioDef) of
     -- we got a matched return it
-    (Just val, _) -> return val
+    (Just val, _) -> lift $ return val
 
     -- we got a default variable, check to see if it's a special var
     (_, Just (defVar, def, ioMatchDef)) -> do
-      matchDef <- ioMatchDef
+      matchDef <- lift $ ioMatchDef
       case matchDef of
         -- we got a default variable that was matched with a special var
-        Just matched -> promptWithDefault matched defVar
+        Just matched -> lift $ promptWithDefault matched defVar
 
         -- we got a default variable that was NOT matched with a special var
-        Nothing -> promptWithDefault def defVar
+        Nothing -> lift $ promptWithDefault def defVar
 
     -- We just got a regular var, prompt!
-    (_, Nothing) -> prompt var
+    (_, Nothing) -> lift $ prompt var
 
-process :: FilePath -> Text -> IO Text
-process file contents = applyTemplate (processVar file) (parseTemplate contents)
+process :: IORef [Text] -> FilePath -> Text -> IO Text
+process ref file contents = do
+  applyTemplate (evalContT . mapContT (mapper ref) . processVar file) (parseTemplate contents)
+  where
+    mapper ref mr = do
+      r <- mr
+      modifyIORef ref (r:)
+      vals <- readIORef ref
+      putStrLn $ "so far " <> show vals
+      return r
+
 
 info :: String -> Doc
 info s = white (text s)
@@ -121,9 +131,10 @@ skeleton mcloset skel = do
   else do
     files <- liftIO (D.getDirectoryContents path)
     let files' = filter (not . (`elem` [".", ".."])) files
+    ref <- liftIO $ newIORef []
     liftIO $ forM files' $ \file -> do
       contents <- liftIO (T.readFile $ path </> file)
-      processed <- process file contents
+      processed <- process ref file contents
       return (file, processed)
 
 note :: Doc -> IO ()

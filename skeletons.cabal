@@ -27,13 +27,13 @@ executable skeletons
   -- other-extensions:    
   
   -- Other library packages from which modules are imported.
-  build-depends: base >=4.7 && <5
-               , ansi-wl-pprint
-               , transformers
-               , text
+  build-depends: ansi-wl-pprint
+               , base >=4.7 && <5
                , directory
                , filepath
+               , text
                , tinytemplate
+               , transformers
   
   -- Directories containing source files.
   hs-source-dirs:      src
