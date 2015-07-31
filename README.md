@@ -46,6 +46,12 @@
   If you use `{{ $basename }}` in your template, it will fill it with the
   name of the current directory
 
+### Default Variables
+
+  Variables can have default values like so: `{{ name ? "bob" }}`
+
+  You can even default to special variables: `{{ dir ? $basename }}`
+
 ## License
 
   The MIT License (MIT)
