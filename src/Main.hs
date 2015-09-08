@@ -9,6 +9,7 @@ module Main where
 
 import Data.Maybe (fromMaybe)
 import Data.IORef
+import Control.Applicative
 import Control.Monad (forM_, forM)
 import Control.Monad.Trans.Class (lift, MonadTrans(..))
 import Control.Monad.Trans.Cont
