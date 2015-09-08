@@ -38,6 +38,7 @@ executable skeletons
                , text
                , tinytemplate
                , transformers
+               , transformers-compat
   
   -- Directories containing source files.
   hs-source-dirs:      src

@@ -1,5 +1,5 @@
 { mkDerivation, base, stdenv, transformers, ansi-wl-pprint, text, tinytemplate,
-  filepath, directory }:
+  filepath, directory, transformers-compat }:
 
 mkDerivation {
   pname = "skeletons";
@@ -8,7 +8,7 @@ mkDerivation {
   isLibrary = false;
   isExecutable = true;
   buildDepends = [ base transformers ansi-wl-pprint text tinytemplate filepath
-                   directory
+                   directory transformers-compat
                  ];
   homepage = "https://github.com/jb55/skeletons";
   description = "Manage project skeletons";
