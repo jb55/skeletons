@@ -1,6 +1,6 @@
 
 name:                skeletons
-version:             0.3.0
+version:             0.4.0
 synopsis:            Manage project skeletons
 description:         skeletons manages project skeletons by applying
                      templates stored in a skeleton closet directory. skeletons
