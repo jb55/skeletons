@@ -2,6 +2,9 @@
 name:                skeletons
 version:             0.2.0
 synopsis:            Manage project skeletons
+description:         skeletons manages project skeletons by applying
+                     templates stored in a skeleton closet directory. skeletons
+                     may also prompt for each variable in the project templates.
 homepage:            https://github.com/jb55/skeletons
 license:             MIT
 license-file:        LICENSE
@@ -11,6 +14,10 @@ cabal-version:       >=1.10
 tested-with:         GHC == 7.4.2, GHC == 7.6.3, GHC == 7.8.4, GHC == 7.10.1, GHC == 7.10.2
 category:            Development
 build-type:          Simple
+
+source-repository head
+  type: git
+  location: https://github.com/jb55/skeletons
 
 executable skeletons
   -- .hs or .lhs file containing the Main module.
