@@ -1,6 +1,8 @@
 
 # skeletons
 
+[![Build Status](https://travis-ci.org/jb55/skeletons.svg)](https://travis-ci.org/jb55/skeletons)
+
   Project skeleton manager
 
 ## Installation
